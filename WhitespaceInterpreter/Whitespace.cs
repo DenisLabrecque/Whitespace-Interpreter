@@ -22,6 +22,7 @@ namespace WhitespaceInterpreter
       string mCommands;
       State mState = State.IMP;
       Stack<int> mStack;
+      Dictionary<int, int> mHeap;
       bool mDebug = false;
 
       private static readonly Dictionary<string, Dictionary<string, Command>> mCommandDictionary = new Dictionary<string, Dictionary<string, Command>>()
@@ -72,6 +73,7 @@ namespace WhitespaceInterpreter
       {
          mCommands = StripNonWhitespace(commands);
          mStack = new Stack<int>();
+         mHeap = new Dictionary<int, int>();
       }
 
       /// <summary>
@@ -185,6 +187,17 @@ namespace WhitespaceInterpreter
                last = FindParameter(parameter, ref index);
                output = last.ToString();
                mStack.Push(last);
+               break;
+            case Command.Store:
+               last = mStack.Pop();
+               first = mStack.Pop();
+               mHeap.Add(first, last);
+               output = "[" + first + "]=" + last;
+               break;
+            case Command.Retrieve:
+               last = mStack.Pop();
+               mStack.Push(mHeap[last]);
+               output = "[" + last + "]=" + mHeap[last];
                break;
          }
 
