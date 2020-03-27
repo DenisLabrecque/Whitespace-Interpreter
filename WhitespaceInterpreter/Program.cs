@@ -6,7 +6,7 @@ namespace WhitespaceInterpreter
    {
       static void Main(string[] args)
       {
-         string mInput = "   \t\n   \t     \t\n\t   \t\n  \n\n\n";
+         string mInput = "  \t\t\n   \t\n\t   \n\n\n";
          Whitespace program = new Whitespace(mInput);
          Console.WriteLine(program);
          try

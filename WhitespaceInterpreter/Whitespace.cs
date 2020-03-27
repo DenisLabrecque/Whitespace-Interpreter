@@ -86,7 +86,7 @@ namespace WhitespaceInterpreter
          StringBuilder builder = new StringBuilder();
          mState = State.IMP;
          string impKey = string.Empty;
-         Command command;
+         Command? command = null;
 
          for (int i = 0; i < mCommands.Length; i++)
          {
@@ -98,30 +98,18 @@ namespace WhitespaceInterpreter
             else
             {
                command = FindCommand(impKey, mCommands.Substring(i, mCommands.Length - i), ref i);
-               if (CommandHasParameter(command))
-               {
-                  builder.Append(RunCommand(command, mCommands.Substring(i, mCommands.Length - i), ref i));
-               }
-               else
-               {
-                  builder.Append(RunCommand(command));
-               }
+               builder.Append(RunCommand((Command)command, mCommands.Substring(i, mCommands.Length - i), ref i));
                mState = State.IMP;
             }
          }
 
-         return builder.ToString();
-      }
-
-      private bool CommandHasParameter(Command command)
-      {
-         switch(command)
+         // Error check
+         if(command == null || command != Command.Halt)
          {
-            case Command.Push:
-               return true;
-            default:
-               return false;
+            throw new Exception("Halt statement not found; stack will stay allocated without use.");
          }
+
+         return builder.ToString();
       }
 
       public static string StripNonWhitespace(string program)
@@ -140,17 +128,19 @@ namespace WhitespaceInterpreter
       }
 
       /// <summary>
-      /// Run a parameterless command.
+      /// Run a parametered command.
       /// </summary>
       /// <param name="command">Command to be run.</param>
-      /// <returns>The command name.</returns>
-      private string RunCommand(Command command)
+      /// <param name="parameter">The parameter string, plus any characters afterwards.</param>
+      /// <param name="index">The index of the parameter string in the original program.</param>
+      /// <returns>The result of running the command.</returns>
+      private string RunCommand(Command command, string parameter, ref int index)
       {
          int last;
          int first;
          string output = null;
 
-         switch(command)
+         switch (command)
          {
             case Command.Add:
                last = mStack.Pop();
@@ -181,44 +171,49 @@ namespace WhitespaceInterpreter
                last = mStack.Pop();
                output = "-> " + last;
                break;
+            case Command.Halt:
+               mStack.Clear();
+               break;
+            case Command.Push:
+               int value = FindParameter(parameter, ref index);
+               output = "-> " + value;
+               mStack.Push(value);
+               break;
          }
 
          if (mDebug)
          {
             return Enum.GetName(typeof(Command), command) + output + '\n';
          }
-         else
+         else if(output != null)
          {
             return output + '\n';
          }
+         else
+         {
+            return null;
+         }
       }
 
-      /// <summary>
-      /// Run a parametered command.
-      /// </summary>
-      /// <param name="command">Command to be run.</param>
-      /// <param name="parameter">The parameter string, plus any characters afterwards.</param>
-      /// <param name="index">The index of the parameter string in the original program.</param>
-      /// <returns>The result of running the command.</returns>
-      private string RunCommand(Command command, string parameter, ref int index)
+      private int FindParameter(string parameter, ref int index)
       {
-         // Assuming push command
          int sign = 0;
          bool terminated = false;
          StringBuilder binaryString = new StringBuilder();
-         
-         //Console.WriteLine("Param: " + ToWords(parameter));
-         for(int i = 0; i < parameter.Length; i++)
+         int start = -1;
+
+         for (int i = 1; i < parameter.Length; i++)
          {
-            if(i == 0)
+            if (i == 1)
             {
-               if(parameter[i] == '\t')
+               if (parameter[i] == '\t')
                {
                   sign = -1;
                }
-               else if(parameter[i] == ' ')
+               else if (parameter[i] == ' ')
                {
                   sign = 1;
+
                }
                else
                {
@@ -227,15 +222,16 @@ namespace WhitespaceInterpreter
             }
             else
             {
-               if(parameter[i] == '\n')
+               if (parameter[i] == '\n')
                {
+                  start = index;
                   index += i;
                   terminated = true;
                   break;
                }
                else
                {
-                  if(parameter[i] == '\t')
+                  if (parameter[i] == '\t')
                   {
                      binaryString.Append('1');
                   }
@@ -247,23 +243,13 @@ namespace WhitespaceInterpreter
             }
          }
 
-         if(terminated == false)
+         if (terminated == false)
          {
             throw new Exception("Non-terminating parameter: " + ToWords(parameter));
          }
-         
-         int conversion = Convert.ToInt32(binaryString.ToString(), 2) * sign;
 
-         mStack.Push(conversion);
-
-         if (mDebug)
-         {
-            return Enum.GetName(typeof(Command), command) + " " + conversion + '\n';
-         }
-         else
-         {
-            return null;
-         }
+         Console.WriteLine("Paramater '" + Convert.ToInt32(binaryString.ToString(), 2) * sign + "' found from " + start + " to " + index);
+         return Convert.ToInt32(binaryString.ToString(), 2) * sign;
       }
 
       private Command FindCommand(string impKey, string command, ref int index)
@@ -272,13 +258,13 @@ namespace WhitespaceInterpreter
          {
             if(command.StartsWith(key))
             {
-               //Console.WriteLine("Command " + ToWords(key) + " found");
-               index += key.Length - 1;
+               Console.WriteLine("Command " + ToWords(key) + " found from " + index + " to " + (index + impKey.Length - 1));
+               index += impKey.Length - 1;
                return mCommandDictionary[impKey][key];
             }
          }
 
-         throw new Exception("Command not found for IMP " + ToWords(impKey) + ": " + ToWords(command));
+         throw new Exception("Command not found for IMP " + ToWords(impKey) + ": " + ToWords(command) + " at index " + index);
       }
 
       private string FindImp(string imp, ref int index)
@@ -287,7 +273,7 @@ namespace WhitespaceInterpreter
          {
             if(imp.StartsWith(key))
             {
-               //Console.WriteLine("IMP " + ToWords(key) + " found");
+               Console.WriteLine("IMP " + ToWords(key) + " found at index " + index);
                index += key.Length - 1;
                return key;
             }
