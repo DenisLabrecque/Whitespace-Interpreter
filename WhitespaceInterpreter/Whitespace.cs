@@ -163,21 +163,28 @@ namespace WhitespaceInterpreter
                mStack.Push(last);
                mStack.Push(first);
                break;
+            case Command.Discard:
+               mStack.Pop();
+               break;
+            case Command.Duplicate:
+               last = mStack.Peek();
+               mStack.Push(last);
+               break;
             case Command.OutputCharacter:
-               last = mStack.Pop();
+               last = mStack.Peek();
                output = "-> " + Convert.ToChar(last);
                break;
             case Command.OutputNumber:
-               last = mStack.Pop();
+               last = mStack.Peek();
                output = "-> " + last;
                break;
             case Command.Halt:
                mStack.Clear();
                break;
             case Command.Push:
-               int value = FindParameter(parameter, ref index);
-               output = "-> " + value;
-               mStack.Push(value);
+               last = FindParameter(parameter, ref index);
+               output = "-> " + last;
+               mStack.Push(last);
                break;
          }
 
@@ -224,7 +231,7 @@ namespace WhitespaceInterpreter
             {
                if (parameter[i] == '\n')
                {
-                  start = index;
+                  start = index + 1;
                   index += i;
                   terminated = true;
                   break;
@@ -258,8 +265,8 @@ namespace WhitespaceInterpreter
          {
             if(command.StartsWith(key))
             {
-               Console.WriteLine("Command " + ToWords(key) + " found from " + index + " to " + (index + impKey.Length - 1));
-               index += impKey.Length - 1;
+               Console.WriteLine("Command " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
+               index += key.Length - 1;
                return mCommandDictionary[impKey][key];
             }
          }
@@ -273,7 +280,7 @@ namespace WhitespaceInterpreter
          {
             if(imp.StartsWith(key))
             {
-               Console.WriteLine("IMP " + ToWords(key) + " found at index " + index);
+               Console.WriteLine("IMP " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
                index += key.Length - 1;
                return key;
             }
