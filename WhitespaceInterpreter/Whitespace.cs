@@ -136,7 +136,7 @@ namespace WhitespaceInterpreter
       /// <returns>The result of running the command.</returns>
       private string RunCommand(Command command, string parameter, ref int index)
       {
-         int last;
+         int last = 0;
          int first;
          string output = null;
 
@@ -172,29 +172,33 @@ namespace WhitespaceInterpreter
                break;
             case Command.OutputCharacter:
                last = mStack.Peek();
-               output = "-> " + Convert.ToChar(last);
+               output = Convert.ToChar(last).ToString();
                break;
             case Command.OutputNumber:
                last = mStack.Peek();
-               output = "-> " + last;
+               output = last.ToString();
                break;
             case Command.Halt:
                mStack.Clear();
                break;
             case Command.Push:
                last = FindParameter(parameter, ref index);
-               output = "-> " + last;
+               output = last.ToString();
                mStack.Push(last);
                break;
          }
 
          if (mDebug)
          {
+            if(output != null)
+            {
+               output = output.Insert(0, "-> ");
+            }
             return Enum.GetName(typeof(Command), command) + output + '\n';
          }
-         else if(output != null)
+         else if(output != null && (command == Command.OutputCharacter || command == Command.OutputNumber))
          {
-            return output + '\n';
+            return output;
          }
          else
          {
@@ -255,7 +259,7 @@ namespace WhitespaceInterpreter
             throw new Exception("Non-terminating parameter: " + ToWords(parameter));
          }
 
-         Console.WriteLine("Paramater '" + Convert.ToInt32(binaryString.ToString(), 2) * sign + "' found from " + start + " to " + index);
+         //Console.WriteLine("Paramater '" + Convert.ToInt32(binaryString.ToString(), 2) * sign + "' found from " + start + " to " + index);
          return Convert.ToInt32(binaryString.ToString(), 2) * sign;
       }
 
@@ -265,7 +269,7 @@ namespace WhitespaceInterpreter
          {
             if(command.StartsWith(key))
             {
-               Console.WriteLine("Command " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
+               //Console.WriteLine("Command " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
                index += key.Length - 1;
                return mCommandDictionary[impKey][key];
             }
@@ -280,7 +284,7 @@ namespace WhitespaceInterpreter
          {
             if(imp.StartsWith(key))
             {
-               Console.WriteLine("IMP " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
+               //Console.WriteLine("IMP " + ToWords(key) + " found from " + index + " to " + (index + key.Length - 1));
                index += key.Length - 1;
                return key;
             }
